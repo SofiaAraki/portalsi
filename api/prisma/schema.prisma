@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  ALUNO
+}
+
+model User {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  role      Role     @default(ALUNO)
+  createdAt DateTime @default(now())
+
+  VagasCriadas            Vaga[]         @relation("CriadorVaga")
+  projetosCriados Projeto[]           @relation("CriadorProjeto")
+  ProjetosParticipados ProjetoIntegrante[]
+  votos           Voto[]
+  Engajamento    Ranking[]
+}
+
+model Evento {
+  id          String   @id @default(uuid())
+  titulo       String
+  descricao    String
+  data         DateTime? @default(now())
+  local        String?
+  link         String?
+  imagemUrl    String?
+  criadoEm     DateTime @default(now())
+}
+
+model Vaga {
+  id          String   @id @default(uuid())
+  titulo      String
+  empresa     String
+  descricao String
+  localizacao    String?
+  link        String?
+  imagemUrl   String?
+  criadoEm   DateTime @default(now())
+
+  criadorId   String
+  criador        User     @relation("CriadorVaga", fields: [criadorId], references: [id])
+}
+
+model Projeto {
+  id        String        @id @default(uuid())
+  titulo    String
+  descricao String
+  githubUrl String?
+  imagemUrl String?
+  status    StatusProjeto @default(EM_ANDAMENTO)
+  criadoEm  DateTime      @default(now())
+
+  criadorId String
+  criador   User   @relation("CriadorProjeto", fields: [criadorId], references: [id])
+
+  integrantes ProjetoIntegrante[]
+}
+
+model ProjetoIntegrante {
+  id String @id @default(uuid())
+
+  userId    String
+  projetoId String
+
+  user    User    @relation(fields: [userId], references: [id])
+  projeto Projeto @relation(fields: [projetoId], references: [id])
+
+  @@unique([userId, projetoId])
+}
+
+enum StatusProjeto {
+  EM_ANDAMENTO
+  CONCLUIDO
+}
+
+model Votacao {
+  id         String   @id @default(uuid())
+  titulo     String
+  descricao  String
+  dataInicio DateTime
+  dataFim    DateTime
+  criadaEm   DateTime @default(now())
+
+  opcoes VotacaoOpcao[]
+  votos  Voto[]
+}
+
+model VotacaoOpcao {
+  id     String @id @default(uuid())
+  titulo String
+
+  votacaoId String
+  votacao   Votacao @relation(fields: [votacaoId], references: [id])
+
+  votos Voto[]
+}
+
+model Voto {
+  id String @id @default(uuid())
+
+  userId  String
+  opcaoId String
+  votacaoId String
+
+  user      User         @relation(fields: [userId], references: [id])
+  opcao     VotacaoOpcao @relation(fields: [opcaoId], references: [id])
+  votacao   Votacao     @relation(fields: [votacaoId], references: [id])
+  
+
+  @@unique([userId, votacaoId])
+}
+
+model Ranking {
+  id       String          @id @default(uuid())
+  tipo     TipoEngajamento
+  pontos   Int
+  referenciaId String?
+  criadoEm DateTime        @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+enum TipoEngajamento {
+  PUBLICOU_VAGA
+  CRIOU_PROJETO
+  VOTOU
+}
